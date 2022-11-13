@@ -1,2 +1,2 @@
 # meta-tag
-Python/Tkinter program to rename files based on their metadata.
+Python/Tkinter application to rename files based on their metadata.
