@@ -9,10 +9,10 @@ from tkinter import filedialog
 import customtkinter as ctk
 
 class Tag(Enum):
-    SIZE = 6
-    ACCESS = 7
-    MODIFICATION = 8
     CREATION = 9
+    MODIFICATION = 8
+    ACCESS = 7
+    SIZE = 6
 
 class Sep(Enum):
     UNDERSCORE = "_"
@@ -20,10 +20,11 @@ class Sep(Enum):
     DOT = "."
     SPACE = " "
 
-optionsTag = {"Creation Date": Tag.CREATION, "Modification Date": Tag.MODIFICATION, "Access Date": Tag.ACCESS, "Size": Tag.SIZE}
-optionsSep = {"_": Sep.UNDERSCORE, "-": Sep.DASH, ".": Sep.DOT, " ": Sep.SPACE}
+# options
+optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
+optionsSep = dict(zip(["_", "-", ".", " "], list(Sep)))
 
-# setting appearance and color theme
+# appearance and color theme
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
@@ -44,7 +45,7 @@ class App(ctk.CTk):
         self.geometry(f"{self.X}x{self.Y}")
         
         # create 10x2 grid system
-        self.grid_rowconfigure([e for e in range(10)], weight=1)
+        self.grid_rowconfigure([r for r in range(10)], weight=1)
         self.grid_columnconfigure((0, 1), weight=1)
 
         # variables
@@ -54,23 +55,24 @@ class App(ctk.CTk):
 
         # entry path
         self.path = ctk.CTkEntry(
-            placeholder_text="/", width=600, height=40, corner_radius=20, textvariable=self.variablePth)
+            width=600, height=40, corner_radius=20, textvariable=self.variablePth)
+        self.path.insert(0, "/")
         self.path.grid(row=2, column=0, columnspan=2, padx=50)
 
         # button browse
         self.browse = ctk.CTkButton(
-            text="Browse", width= 600, height=40, corner_radius=20, command=self.directory)
+            text="Browse", width= 600, height=40, corner_radius=20, command=self.chooseDirectory)
         self.browse.grid(row=3, column=0, columnspan=2, padx=50)
 
         # option-menu tag
         self.tag = ctk.CTkOptionMenu(
-            width=280, height=40, button_color="#11B384", button_hover_color="#0D8A66", variable=self.variableTag, values=list(optionsTag.keys()), corner_radius=20)
+            width=280, height=40, button_color="#11B384", button_hover_color="#0D8A66", corner_radius=20, variable=self.variableTag, values=list(optionsTag.keys()))
         self.tag.set(list(optionsTag)[0])
         self.tag.grid(row=4, column=0, padx=20, sticky="e")
 
         # option-menu seperator
         self.sep = ctk.CTkOptionMenu(
-            width=280, height=40, button_color="#11B384", button_hover_color="#0D8A66", variable=self.variableSep, values=list(optionsSep.keys()), corner_radius=20)
+            width=280, height=40, button_color="#11B384", button_hover_color="#0D8A66", corner_radius=20, variable=self.variableSep, values=list(optionsSep.keys()))
         self.sep.set(list(optionsSep)[0])
         self.sep.grid(row=4, column=1, padx=20, sticky="w")
 
@@ -80,18 +82,19 @@ class App(ctk.CTk):
         self.ok.grid(row=6, columnspan=2)
 
     # open explorer
-    def directory(self):
+    def chooseDirectory(self):
         pth = filedialog.askdirectory()
         if pth:
             self.path.delete(0, ctk.END)
             self.path.insert(0, pth)
     
-    # generate information and initialise renaming
+    # generate information and launch renaming
     def renameDirectory(self):
         self.renameFiles(files=glob(f"{self.variablePth.get()}/*"), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
 
     # renaming
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
+        renamedFiles = []
         for file in files:
             try:
                 pass
@@ -113,10 +116,16 @@ class App(ctk.CTk):
                 return
 
             new = f"{root}{sep.value}{appendix}{ext}"
-            print(f"Old:\t{old}\nNew:\t{new}")
-            rename(old, new)
+            # maintenance
+            # rename(old, new)
+            renamedFiles.append([old, new])
+            print(f"{old}\n{new}\n{'_' * 100}")
+
+
+def main():
+    app = App()
+    app.mainloop()
 
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    main()
