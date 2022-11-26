@@ -43,9 +43,8 @@ class App(ctk.CTk):
 
         # configure window
         self.title("metamate")
-        icon = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "icons8-m-96.png"))
-        self.iconphoto(False, icon)
-        check = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "icons8-check-mark-96"))
+        self.icon = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "icons8-m-96.png"))
+        self.iconphoto(False, self.icon)
         self.minsize(self.X, self.Y)
         self.maxsize(self.X, self.Y)
         self.geometry(f"{self.X}x{self.Y}")
