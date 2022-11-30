@@ -1,6 +1,8 @@
 # Python 3.9.2
 
 import os
+import stat
+import platform
 from glob import glob
 from enum import Enum
 from time import strftime, localtime
@@ -100,14 +102,17 @@ class App(ctk.CTk):
         else:
             pass # warning icon
 
+    # return if the file is not hidden
+    def notHidden(self, file):
+        return not bool(os.stat(file).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+
     # renaming
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
         renamedFiles = []
+        # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
+        if platform.system() == "Windows":
+            files = filter(self.notHidden, files)
         for file in files:
-            try:
-                pass
-            except:
-                print("File not found")
 
             old = os.path.realpath(file)
             root, ext = os.path.splitext(old)
