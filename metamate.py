@@ -1,4 +1,8 @@
-# Python 3.9.2
+"""
+Dependencies:
+Python 3.9.2 (Python3-tk)
+CustomTkinter 4.6.3 (pip3)
+"""
 
 import os
 import stat
@@ -62,30 +66,30 @@ class App(ctk.CTk):
 
         # entry path
         self.path = ctk.CTkEntry(
-            width=600, height=40, corner_radius=20, textvariable=self.variablePth)
+            self, width=600, height=40, corner_radius=20, textvariable=self.variablePth)
         self.path.insert(0, rootDir)
         self.path.grid(row=2, column=0, columnspan=2, padx=50)
 
         # button browse
         self.browse = ctk.CTkButton(
-            text="Browse", width= 600, height=40, corner_radius=20, command=self.chooseDirectory)
+            self, text="Browse", width= 600, height=40, corner_radius=20, command=self.chooseDirectory)
         self.browse.grid(row=3, column=0, columnspan=2, padx=50)
 
         # option-menu tag
         self.tag = ctk.CTkOptionMenu(
-            width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableTag, values=list(optionsTag.keys()))
+            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableTag, values=list(optionsTag.keys()))
         self.tag.set(list(optionsTag)[0])
         self.tag.grid(row=4, column=0, padx=20, sticky="e")
 
         # option-menu seperator
         self.sep = ctk.CTkOptionMenu(
-            width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableSep, values=list(optionsSep.keys()))
+            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableSep, values=list(optionsSep.keys()))
         self.sep.set(list(optionsSep)[0])
         self.sep.grid(row=4, column=1, padx=20, sticky="w")
 
         # button confirm
         self.ok = ctk.CTkButton(
-            text="Go", width=140, height=40, corner_radius=20, command=self.renameDirectory)
+            self, text="Go", width=140, height=40, corner_radius=20, command=self.renameDirectory)
         self.ok.grid(row=6, columnspan=2)
 
     # open explorer
@@ -109,6 +113,9 @@ class App(ctk.CTk):
     # renaming
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
         renamedFiles = []
+        # discard directories
+        # files = [f for f in files if os.path.isfile(f)]
+        files = filter(os.path.isfile, files)
         # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
         if platform.system() == "Windows":
             files = filter(self.notHidden, files)
