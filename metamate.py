@@ -14,9 +14,6 @@ import tkinter as tk
 from tkinter import filedialog
 import customtkinter as ctk
 
-# root directory for placeholder text and safety
-rootDir = os.path.abspath(os.sep)
-
 class Tag(Enum):
     CREATION = 9
     MODIFICATION = 8
@@ -28,6 +25,9 @@ class Sep(Enum):
     DASH = "-"
     DOT = "."
     SPACE = " "
+
+# root directory for placeholder-text and safety
+rootDir = os.path.abspath(os.sep)
 
 # options
 optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
@@ -89,7 +89,7 @@ class App(ctk.CTk):
 
         # button confirm
         self.ok = ctk.CTkButton(
-            self, text="Go", width=140, height=40, corner_radius=20, command=self.renameDirectory)
+            self, text="Go", width=140, height=40, corner_radius=20, command=self.renameFilesInDirectory)
         self.ok.grid(row=6, columnspan=2)
 
     # open explorer
@@ -100,25 +100,30 @@ class App(ctk.CTk):
             self.path.insert(0, pth)
     
     # generate information and launch renaming
-    def renameDirectory(self):
+    def renameFilesInDirectory(self):
         if self.variablePth.get() != rootDir:
             self.renameFiles(files=glob(f"{self.variablePth.get()}/*"), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
         else:
-            pass # warning icon
+            pass # TODO: warning icon
 
-    # return if the file is not hidden
+    # return whether the file is not hidden
     def notHidden(self, file):
         return not bool(os.stat(file).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
-    # renaming
-    def renameFiles(self, files: list, tag: Tag, sep: Sep):
-        renamedFiles = []
+    def cleanFiles(self, files):
         # discard directories
-        # files = [f for f in files if os.path.isfile(f)]
         files = filter(os.path.isfile, files)
         # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
         if platform.system() == "Windows":
             files = filter(self.notHidden, files)
+        return files
+
+    # renaming
+    def renameFiles(self, files: list, tag: Tag, sep: Sep):
+        #renamedFiles = []
+        # discard critical files
+        files = self.cleanFiles(files)
+        
         for file in files:
 
             old = os.path.realpath(file)
@@ -128,18 +133,19 @@ class App(ctk.CTk):
             if(tag == tag.SIZE):
                 appendix = f"{meta[tag.value]}Byte"
             elif(tag in (tag.ACCESS, tag.MODIFICATION, tag.CREATION)):
-                raw = meta[tag.value]
-                time = localtime(raw)
+                time = localtime(meta[tag.value])
                 appendix = strftime("%Y-%m-%d", time)
             else:
                 print("No tag defined")
                 return
 
             new = f"{root}{sep.value}{appendix}{ext}"
-            # maintenance
-            # os.rename(old, new)
-            renamedFiles.append([old, new])
-            print(f"{old}\n{new}\n{'_' * 100}")
+            # check whether file was already renamed
+            if appendix not in old:
+                # maintenance
+                #os.rename(old, new)
+                #renamedFiles.append([old, new])
+                print(f"{old}\n{new}\n{'_' * 100}")
 
 
 def main():
