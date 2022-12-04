@@ -1,7 +1,9 @@
 """
 Dependencies:
-Python 3.9.2 (Python3-tk)
+Python 3.9.2
+Python3-tk
 CustomTkinter 4.6.3 (pip3)
+icons8-m-96.png
 """
 
 import os
@@ -47,19 +49,19 @@ class App(ctk.CTk):
 
         super().__init__()
 
-        # configure window
+        # setup window
         self.title("metamate")
         self.icon = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "icons8-m-96.png"))
         self.iconphoto(False, self.icon)
+        self.geometry(f"{self.X}x{self.Y}")
         self.minsize(self.X, self.Y)
         self.maxsize(self.X, self.Y)
-        self.geometry(f"{self.X}x{self.Y}")
-        
+
         # create 10x2 grid system
         self.grid_rowconfigure([r for r in range(10)], weight=1)
         self.grid_columnconfigure((0, 1), weight=1)
 
-        # variables
+        # CTk variables
         self.variablePth = ctk.StringVar(self)
         self.variableTag = ctk.StringVar(self)
         self.variableSep = ctk.StringVar(self)
@@ -88,41 +90,47 @@ class App(ctk.CTk):
         self.sep.grid(row=4, column=1, padx=20, sticky="w")
 
         # button confirm
-        self.ok = ctk.CTkButton(
+        self.confirm = ctk.CTkButton(
             self, text="Go", width=140, height=40, corner_radius=20, command=self.renameFilesInDirectory)
-        self.ok.grid(row=6, columnspan=2)
+        self.confirm.grid(row=6, columnspan=2)
 
-    # open explorer
+    # open explorer and set path entry
     def chooseDirectory(self):
         pth = filedialog.askdirectory()
         if pth:
             self.path.delete(0, ctk.END)
             self.path.insert(0, pth)
     
-    # generate information and launch renaming
+    # generate information and call renaming
     def renameFilesInDirectory(self):
-        if self.variablePth.get() != rootDir:
-            self.renameFiles(files=glob(f"{self.variablePth.get()}/*"), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
+        pth = self.variablePth.get().strip()
+        # check that the directory is not the root directory
+        if pth != rootDir:
+            self.renameFiles(files=glob(os.path.join(pth, "*")), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
         else:
-            pass # TODO: warning icon
+            print("Warning")    # maintenance
+            pass # TODO: warning-icon
 
     # return whether the file is not hidden
     def notHidden(self, file):
         return not bool(os.stat(file).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
+    # discard critical files
     def cleanFiles(self, files):
-        # discard directories
+        # discard subdirectories
         files = filter(os.path.isfile, files)
         # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
         if platform.system() == "Windows":
             files = filter(self.notHidden, files)
         return files
 
-    # renaming
+    # rename files based on their meta data
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
-        #renamedFiles = []
         # discard critical files
         files = self.cleanFiles(files)
+        # list of renamed files
+        #renamedFiles = []
+        completed = True
         
         for file in files:
 
@@ -139,13 +147,25 @@ class App(ctk.CTk):
                 print("No tag defined")
                 return
 
+            # build new filename
             new = f"{root}{sep.value}{appendix}{ext}"
-            # check whether file was already renamed
+            # check that the file was not already renamed
             if appendix not in old:
-                # maintenance
-                #os.rename(old, new)
-                #renamedFiles.append([old, new])
-                print(f"{old}\n{new}\n{'_' * 100}")
+                try:
+                    # rename from old to new
+                    os.rename(old, new)
+                    #renamedFiles.append([old, new])
+                    print(f"{old}\n{new}\n{'_' * 100}") # maintenance
+                except:
+                    completed = False
+
+        if completed:
+            print("Successful") # maintenance
+            pass # TODO: successful-icon
+        else:
+            print("Error")  # maintenance
+            pass # TODO: error-icon
+        # TODO: add renamedFiles[] to logfile
 
 
 def main():
