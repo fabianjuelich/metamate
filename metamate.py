@@ -126,45 +126,54 @@ class App(ctk.CTk):
 
     # rename files based on their meta data
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
-        # discard critical files
-        files = self.cleanFiles(files)
-        # list of renamed files
-        #renamedFiles = []
-        completed = True
-        
-        for file in files:
+        # check wheter there are any files to be renamed
+        if files:
+            # discard critical files
+            files = self.cleanFiles(files)
+            # list of renamed files
+            #renamedFiles = []
+            completed = True
+            
+            for file in files:
 
-            old = os.path.realpath(file)
-            root, ext = os.path.splitext(old)
-            meta = os.stat(file)
+                old = os.path.realpath(file)
+                root, ext = os.path.splitext(old)
+                meta = os.stat(file)
 
-            if(tag == tag.SIZE):
-                appendix = f"{meta[tag.value]}Byte"
-            elif(tag in (tag.ACCESS, tag.MODIFICATION, tag.CREATION)):
-                time = localtime(meta[tag.value])
-                appendix = strftime("%Y-%m-%d", time)
+                if(tag == tag.SIZE):
+                    appendix = f"{meta[tag.value]}Byte"
+                elif(tag in (tag.ACCESS, tag.MODIFICATION, tag.CREATION)):
+                    time = localtime(meta[tag.value])
+                    appendix = strftime("%Y-%m-%d", time)
+                else:
+                    print("No tag defined")
+                    return
+
+                # build new filename
+                new = f"{root}{sep.value}{appendix}{ext}"
+                # check that the file was not already renamed
+                if appendix not in old:
+                    try:
+                        # rename from old to new
+                        #os.rename(old, new)
+                        #renamedFiles.append([old, new])
+                        print(f"{old}\n{new}\n{'_' * 100}") # maintenance
+                    except:
+                        completed = False
+
+            # all files have been renamed
+            if completed:
+                print("Successful") # maintenance
+                pass # TODO: successful-icon
+            # not all files have been renamed
             else:
-                print("No tag defined")
-                return
+                print("Error")  # maintenance
+                pass # TODO: error-icon
 
-            # build new filename
-            new = f"{root}{sep.value}{appendix}{ext}"
-            # check that the file was not already renamed
-            if appendix not in old:
-                try:
-                    # rename from old to new
-                    os.rename(old, new)
-                    #renamedFiles.append([old, new])
-                    print(f"{old}\n{new}\n{'_' * 100}") # maintenance
-                except:
-                    completed = False
-
-        if completed:
-            print("Successful") # maintenance
-            pass # TODO: successful-icon
+        # there are no files to be renamed
         else:
-            print("Error")  # maintenance
-            pass # TODO: error-icon
+            print("Warning")    #maintenance
+            pass # TODO: warning-icon
         # TODO: add renamedFiles[] to logfile
 
 
