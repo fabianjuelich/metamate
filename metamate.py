@@ -6,15 +6,35 @@ CustomTkinter 4.6.3 (pip3)
 icons8-m-96.png
 """
 
+import sys
 import os
-import stat
 import platform
+import stat
+import logging
 from glob import glob
 from enum import Enum
 from time import strftime, localtime
 import tkinter as tk
 from tkinter import filedialog
 import customtkinter as ctk
+import atexit
+
+# change current working directory to script path
+try:
+    os.chdir(os.path.dirname(__file__)) #os.path.join(os.path.dirname(__file__),"<filename>")
+except:
+    # abort
+    sys.exit("cwd can not be changed")
+
+# configure and create logger
+logFormat = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(
+    filename=("metamate.log"),
+    level=logging.DEBUG,
+    format=logFormat)
+logger = logging.getLogger()
+
+logger.info("Startup")
 
 class Tag(Enum):
     CREATION = 9
@@ -28,10 +48,10 @@ class Sep(Enum):
     DOT = "."
     SPACE = " "
 
-# root directory for placeholder-text and safety
+# root directory for placeholder-text and safety purposes
 rootDir = os.path.abspath(os.sep)
 
-# options
+# options for renaming
 optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
 optionsSep = dict(zip(["_", "-", ".", " "], list(Sep)))
 
@@ -103,13 +123,16 @@ class App(ctk.CTk):
     
     # generate information and call renaming
     def renameFilesInDirectory(self):
+        logger.info("Execute")
         pth = self.variablePth.get().strip()
         # check that the directory is not the root directory
         if pth != rootDir:
             self.renameFiles(files=glob(os.path.join(pth, "*")), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
         else:
-            print("Warning")    # maintenance
-            pass # TODO: warning-icon
+            # logging
+            logger.warning("Files in root directory can not be renamed")
+            # TODO: warning-icon
+        logger.info("Finish")
 
     # return whether the file is not hidden
     def notHidden(self, file):
@@ -124,63 +147,74 @@ class App(ctk.CTk):
             files = filter(self.notHidden, files)
         return files
 
-    # rename files based on their meta data
+    # rename files based on their meta data, handle exceptions and write to logfile
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
-        # check wheter there are any files to be renamed
-        if files:
-            # discard critical files
-            files = self.cleanFiles(files)
-            # list of renamed files
-            #renamedFiles = []
-            completed = True
-            
-            for file in files:
+        # abort if there are no files to be renamed
+        if not files:
+            # logging
+            logger.warning("No files to be renamed")
+            # TODO: warning-icon
+            return
 
-                old = os.path.realpath(file)
-                root, ext = os.path.splitext(old)
-                meta = os.stat(file)
+        # discard critical files
+        files = self.cleanFiles(files)
+        completed = True
+        
+        for file in files:
 
-                if(tag == tag.SIZE):
-                    appendix = f"{meta[tag.value]}Byte"
-                elif(tag in (tag.ACCESS, tag.MODIFICATION, tag.CREATION)):
-                    time = localtime(meta[tag.value])
-                    appendix = strftime("%Y-%m-%d", time)
-                else:
-                    print("No tag defined")
-                    return
+            # collect or generate information
+            old = os.path.realpath(file)
+            root, ext = os.path.splitext(old)
+            meta = os.stat(file)
 
-                # build new filename
-                new = f"{root}{sep.value}{appendix}{ext}"
-                # check that the file was not already renamed
-                if appendix not in old:
-                    try:
-                        # rename from old to new
-                        #os.rename(old, new)
-                        #renamedFiles.append([old, new])
-                        print(f"{old}\n{new}\n{'_' * 100}") # maintenance
-                    except:
-                        completed = False
-
-            # all files have been renamed
-            if completed:
-                print("Successful") # maintenance
-                pass # TODO: successful-icon
-            # not all files have been renamed
+            if(tag == tag.SIZE):
+                appendix = f"{meta[tag.value]}Byte"
+            elif(tag in (tag.ACCESS, tag.MODIFICATION, tag.CREATION)):
+                time = localtime(meta[tag.value])
+                appendix = strftime("%Y-%m-%d", time)
             else:
-                print("Error")  # maintenance
-                pass # TODO: error-icon
+                # logging
+                logger.error("Tag not defined")
+                return
 
-        # there are no files to be renamed
+            # build new filename
+            new = f"{root}{sep.value}{appendix}{ext}"
+            # check that the file was not already renamed
+            if appendix not in old:
+                try:
+                    # rename from old to new
+                    os.rename(old, new)
+                    # logging
+                    logger.info(f"'{old}' renamed to '{new}'")
+                except:
+                    # logging
+                    completed = False
+                    logger.error(f"'{old}' could not be renamed to '{new}'")
+            else:
+                # logging
+                completed = False
+                logger.warning(f"'{old}' was already renamed to '{new}'")
+
+        # all files have been renamed
+        if completed:
+            # logging
+            logger.info("All files have been renamed")
+            # TODO: successful-icon
+        # not all files have been renamed
         else:
-            print("Warning")    #maintenance
-            pass # TODO: warning-icon
-        # TODO: add renamedFiles[] to logfile
+            # logging
+            logger.error("Not all files have been renamed")
+            # TODO: error-icon
 
 
 def main():
     app = App()
     app.mainloop()
 
+def exitHandler():
+    logger.info("Exit")
 
 if __name__ == "__main__":
     main()
+    # logging
+    atexit.register(exitHandler)
