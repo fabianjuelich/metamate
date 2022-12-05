@@ -19,7 +19,7 @@ from tkinter import filedialog
 import customtkinter as ctk
 import atexit
 
-# change current working directory to script path
+# change current working directory to script path   # TODO: set home-directory as default for askdirectory()
 try:
     os.chdir(os.path.dirname(__file__)) #os.path.join(os.path.dirname(__file__),"<filename>")
 except:
@@ -30,14 +30,15 @@ except:
 logFormat = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(
     filename=("metamate.log"),
-    level=logging.DEBUG,
+    level=logging.INFO,
     format=logFormat)
 logger = logging.getLogger()
 
 logger.info("Startup")
 
+# constants
 class Tag(Enum):
-    CREATION = 9
+    CREATION = 9    # TODO: wrongdoing: changed to current date after renaming file
     MODIFICATION = 8
     ACCESS = 7
     SIZE = 6
@@ -90,29 +91,42 @@ class App(ctk.CTk):
         self.path = ctk.CTkEntry(
             self, width=600, height=40, corner_radius=20, textvariable=self.variablePth)
         self.path.insert(0, rootDir)
-        self.path.grid(row=2, column=0, columnspan=2, padx=50)
+        self.path.grid(row=3, column=0, columnspan=2, padx=50)
 
         # button browse
         self.browse = ctk.CTkButton(
             self, text="Browse", width= 600, height=40, corner_radius=20, command=self.chooseDirectory)
-        self.browse.grid(row=3, column=0, columnspan=2, padx=50)
+        self.browse.grid(row=4, column=0, columnspan=2, padx=50)
 
         # option-menu tag
         self.tag = ctk.CTkOptionMenu(
             self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableTag, values=list(optionsTag.keys()))
         self.tag.set(list(optionsTag)[0])
-        self.tag.grid(row=4, column=0, padx=20, sticky="e")
+        self.tag.grid(row=5, column=0, padx=20, sticky="e")
 
         # option-menu seperator
         self.sep = ctk.CTkOptionMenu(
             self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableSep, values=list(optionsSep.keys()))
         self.sep.set(list(optionsSep)[0])
-        self.sep.grid(row=4, column=1, padx=20, sticky="w")
+        self.sep.grid(row=5, column=1, padx=20, sticky="w")
 
         # button confirm
         self.confirm = ctk.CTkButton(
             self, text="Go", width=140, height=40, corner_radius=20, command=self.renameFilesInDirectory)
-        self.confirm.grid(row=6, columnspan=2)
+        self.confirm.grid(row=7, columnspan=2)
+
+        # label message
+        self.message = ctk.CTkLabel(
+            self, text="", width=200, height=40, corner_radius=20)
+        self.message.grid(row = 8, columnspan=2)
+
+    # set message in label
+    def setMessage(self, msg:str):
+        self.message.configure(text=msg)
+
+    # clear message in label
+    def clearMessage(self):
+        self.setMessage("")
 
     # open explorer and set path entry
     def chooseDirectory(self):
@@ -125,13 +139,17 @@ class App(ctk.CTk):
     def renameFilesInDirectory(self):
         logger.info("Execute")
         pth = self.variablePth.get().strip()
+        # check that the directory exists
+        if not os.path.isdir(pth):
+            logger.warning(f"Non-existent directory: '{pth}'")
+            self.setMessage("Non-existent directory")   # TODO: warning-icon
         # check that the directory is not the root directory
-        if pth != rootDir:
-            self.renameFiles(files=glob(os.path.join(pth, "*")), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
+        elif pth == rootDir:
+            logger.warning(f"Files in root directory cannot be renamed: '{pth}'")
+            self.setMessage("Choose valid directory")   # TODO: warning-icon
+        # rename
         else:
-            # logging
-            logger.warning("Files in root directory can not be renamed")
-            # TODO: warning-icon
+            self.renameFiles(files=glob(os.path.join(pth, "*")), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
         logger.info("Finish")
 
     # return whether the file is not hidden
@@ -140,29 +158,32 @@ class App(ctk.CTk):
 
     # discard critical files
     def cleanFiles(self, files):
-        # discard subdirectories
+        # check that file exists and discard subdirectories
         files = filter(os.path.isfile, files)
         # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
         if platform.system() == "Windows":
             files = filter(self.notHidden, files)
-        return files
+        return list(files)
 
     # rename files based on their meta data, handle exceptions and write to logfile
     def renameFiles(self, files: list, tag: Tag, sep: Sep):
-        # abort if there are no files to be renamed
-        if not files:
-            # logging
-            logger.warning("No files to be renamed")
-            # TODO: warning-icon
-            return
-
         # discard critical files
         files = self.cleanFiles(files)
-        completed = True
+        # abort if there are no files to rename
+        if not files:
+            logger.warning("No files to rename")
+            self.setMessage("Directory is empty")   # TODO: warning-icon
+            return
+
+        # for analyzing
+        some = False
+        complete = True
+        already = False
+        failure = False
         
         for file in files:
 
-            # collect or generate information
+            # collect and generate information
             old = os.path.realpath(file)
             root, ext = os.path.splitext(old)
             meta = os.stat(file)
@@ -173,38 +194,53 @@ class App(ctk.CTk):
                 time = localtime(meta[tag.value])
                 appendix = strftime("%Y-%m-%d", time)
             else:
-                # logging
                 logger.error("Tag not defined")
                 return
 
             # build new filename
             new = f"{root}{sep.value}{appendix}{ext}"
-            # check that the file was not already renamed
-            if appendix not in old:
+
+            # check that the file is not named that way yet
+            if appendix in old:
+                already = True
+                complete = False
+                logger.warning(f"'{old}' has already been named that way '{appendix}'")
+            else:
                 try:
                     # rename from old to new
                     os.rename(old, new)
-                    # logging
+                    some = True
                     logger.info(f"'{old}' renamed to '{new}'")
                 except:
-                    # logging
-                    completed = False
+                    failure = True
+                    complete = False
                     logger.error(f"'{old}' could not be renamed to '{new}'")
-            else:
-                # logging
-                completed = False
-                logger.warning(f"'{old}' was already renamed to '{new}'")
 
-        # all files have been renamed
-        if completed:
-            # logging
-            logger.info("All files have been renamed")
-            # TODO: successful-icon
-        # not all files have been renamed
+        # conclusion    # TODO: feedback-icons
+        if some and complete:
+            logger.info("Success: all files have been renamed")
+            self.setMessage("Succesful")
+        elif some and already and not failure:
+            logger.warning("Success: some files were already named that way")
+            self.setMessage("Successful (some files were already named correctly)")
+        elif some and failure and not already:
+            logger.error("Succes: some files could not have been renamed")
+            self.setMessage("Successful (but something went wrong)")
+        elif some and failure and already:
+            logger.error("Success: something went wrong and some files were already named that way")
+            self.setMessage("Successful (but something went wrong and some files were already named correctly)")
+        elif already and failure:
+            logger.error("Fail: something went wrong and some files were already named that way")
+            self.setMessage("Failure (something went wrong and some files were already named correctly)")
+        elif already:
+            logger.error("Success: all files are already named that way")
+            self.setMessage("Successful (all files were already named correctly)")
+        elif failure:
+            logger.error("Fail: no files have been renamed")
+            self.setMessage("Failure (something went wrong)")
         else:
-            # logging
-            logger.error("Not all files have been renamed")
-            # TODO: error-icon
+            logger.error("Fail")
+            self.setMessage("Failure")
 
 
 def main():
@@ -216,5 +252,5 @@ def exitHandler():
 
 if __name__ == "__main__":
     main()
-    # logging
+    # log exit
     atexit.register(exitHandler)
