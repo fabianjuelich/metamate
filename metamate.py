@@ -19,12 +19,15 @@ from tkinter import filedialog
 import customtkinter as ctk
 import atexit
 
-# change current working directory to script path   # TODO: set home-directory as default for askdirectory()
+# change current working directory to script path
 try:
-    os.chdir(os.path.dirname(__file__)) #os.path.join(os.path.dirname(__file__),"<filename>")
+    os.chdir(os.path.dirname(__file__))
 except:
     # abort
     sys.exit("cwd can not be changed")
+
+# get home directory
+home = os.path.expanduser("~")
 
 # configure and create logger
 logFormat = "%(levelname)s %(asctime)s - %(message)s"
@@ -38,7 +41,7 @@ logger.info("Startup")
 
 # constants
 class Tag(Enum):
-    CREATION = 9    # TODO: wrongdoing: changed to current date after renaming file
+    CREATION = 9    # TODO: wrongdoing: changed to current date after renaming file on linux
     MODIFICATION = 8
     ACCESS = 7
     SIZE = 6
@@ -72,7 +75,7 @@ class App(ctk.CTk):
 
         # setup window
         self.title("metamate")
-        self.icon = tk.PhotoImage(file = os.path.join(os.path.dirname(__file__), "icons8-m-96.png"))
+        self.icon = tk.PhotoImage(file = "icons8-m-96.png")
         self.iconphoto(False, self.icon)
         self.geometry(f"{self.X}x{self.Y}")
         self.minsize(self.X, self.Y)
@@ -130,7 +133,7 @@ class App(ctk.CTk):
 
     # open explorer and set path entry
     def chooseDirectory(self):
-        pth = filedialog.askdirectory()
+        pth = filedialog.askdirectory(initialdir=home)
         if pth:
             self.path.delete(0, ctk.END)
             self.path.insert(0, pth)
@@ -171,7 +174,7 @@ class App(ctk.CTk):
         files = self.cleanFiles(files)
         # abort if there are no files to rename
         if not files:
-            logger.warning("No files to rename")
+            logger.warning("No files to rename")    # TODO: log directory
             self.setMessage("Directory is empty")   # TODO: warning-icon
             return
 
