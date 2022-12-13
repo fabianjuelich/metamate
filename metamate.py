@@ -129,9 +129,10 @@ class App(ctk.CTk):
     def clearMessage(self):
         self.setMessage("")
 
-    # open explorer and set path entry dynamically
+    # open file explorer dynamically and set path entry
     def chooseDirectory(self):
-        initDir = self.variablePth.get().strip() if self.variablePth.get().strip() != rootDir else home
+        getPath = self.variablePth.get().strip()
+        initDir = getPath if getPath != rootDir and os.path.isdir(getPath) else home
         pth = filedialog.askdirectory(initialdir=initDir)
         if pth:
             self.path.delete(0, ctk.END)
@@ -165,7 +166,6 @@ class App(ctk.CTk):
         hidden += os.path.basename(path).startswith(".")
         if platform.system() == "Windows":
             hidden += bool(os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
-        print("Hidden:", hidden)
         return not hidden
 
     # discard critical files
@@ -252,7 +252,6 @@ class App(ctk.CTk):
         else:
             logger.error("Fail")
             self.setMessage("Failure")
-
 
 def exitHandler():
     logger.info("Exit")
