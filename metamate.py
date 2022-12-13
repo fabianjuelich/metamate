@@ -19,25 +19,18 @@ from tkinter import filedialog
 import customtkinter as ctk
 import atexit
 
+# root directory for placeholder-text and safety purposes
+rootDir = os.path.abspath(os.sep)
+
+# get home directory
+home = os.path.expanduser("~")
+
 # change current working directory to script path
 try:
     os.chdir(os.path.dirname(__file__))
 except:
     # abort
     sys.exit("cwd can not be changed")
-
-# get home directory
-home = os.path.expanduser("~")
-
-# configure and create logger
-logFormat = "%(levelname)s %(asctime)s - %(message)s"
-logging.basicConfig(
-    filename=("metamate.log"),
-    level=logging.INFO,
-    format=logFormat)
-logger = logging.getLogger()
-
-logger.info("Startup")
 
 # constants
 class Tag(Enum):
@@ -52,22 +45,27 @@ class Sep(Enum):
     DOT = "."
     SPACE = " "
 
-# root directory for placeholder-text and safety purposes
-rootDir = os.path.abspath(os.sep)
-
-# options for renaming
-optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
-optionsSep = dict(zip(["_", "-", ".", " "], list(Sep)))
-
-# appearance and color theme
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("sweetkind")
+# configure and create logger
+logFormat = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(
+    filename=("metamate.log"),
+    level=logging.INFO,
+    format=logFormat)
+logger = logging.getLogger()
 
 class App(ctk.CTk):
+
+    # appearance and color theme
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("sweetkind")
 
     # window dimensions
     X = 800
     Y = 440
+
+    # options for renaming
+    optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
+    optionsSep = dict(zip(["_", "-", ".", " "], list(Sep)))
 
     def __init__(self):
 
@@ -103,14 +101,14 @@ class App(ctk.CTk):
 
         # option-menu tag
         self.tag = ctk.CTkOptionMenu(
-            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableTag, values=list(optionsTag.keys()))
-        self.tag.set(list(optionsTag)[0])
+            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableTag, values=list(self.optionsTag.keys()))
+        self.tag.set(list(self.optionsTag)[0])
         self.tag.grid(row=5, column=0, padx=20, sticky="e")
 
         # option-menu seperator
         self.sep = ctk.CTkOptionMenu(
-            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableSep, values=list(optionsSep.keys()))
-        self.sep.set(list(optionsSep)[0])
+            self, width=280, height=40, button_hover_color=("#8593d6", "#171926"), corner_radius=20, variable=self.variableSep, values=list(self.optionsSep.keys()))
+        self.sep.set(list(self.optionsSep)[0])
         self.sep.grid(row=5, column=1, padx=20, sticky="w")
 
         # button confirm
@@ -152,7 +150,7 @@ class App(ctk.CTk):
             self.setMessage("Choose valid directory")   # TODO: warning-icon
         # rename
         else:
-            self.renameFiles(files=glob(os.path.join(pth, "*")), tag=optionsTag[self.variableTag.get()], sep=optionsSep[self.variableSep.get()])
+            self.renameFiles(files=glob(os.path.join(pth, "*")), tag=self.optionsTag[self.variableTag.get()], sep=self.optionsSep[self.variableSep.get()])
         logger.info("Finish")
 
     # return whether the file is not hidden
@@ -246,14 +244,15 @@ class App(ctk.CTk):
             self.setMessage("Failure")
 
 
-def main():
-    app = App()
-    app.mainloop()
-
 def exitHandler():
     logger.info("Exit")
+
+def main():
+    logger.info("Startup")
+    app = App()
+    app.mainloop()
+    atexit.register(exitHandler)
 
 if __name__ == "__main__":
     main()
     # log exit
-    atexit.register(exitHandler)
