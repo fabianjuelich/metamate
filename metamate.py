@@ -19,10 +19,10 @@ from tkinter import filedialog
 import customtkinter as ctk
 import atexit
 
-# root directory for placeholder-text and safety purposes
+# root directory for placeholder and safety purposes
 rootDir = os.path.abspath(os.sep)
 
-# get home directory
+# home directory for file explorer
 home = os.path.expanduser("~")
 
 # change current working directory to script path
@@ -34,7 +34,7 @@ except:
 
 # constants
 class Tag(Enum):
-    CREATION = 9    # TODO: wrongdoing: changed to current date after renaming file on linux
+    CREATION = 9
     MODIFICATION = 8
     ACCESS = 7
     SIZE = 6
@@ -60,8 +60,8 @@ class App(ctk.CTk):
     ctk.set_default_color_theme("sweetkind")
 
     # window dimensions
-    X = 800
-    Y = 440
+    x = 800
+    y = 440
 
     # options for renaming
     optionsTag = dict(zip(["Creation Date", "Modification Date", "Access Date", "Size"], list(Tag)))
@@ -75,9 +75,9 @@ class App(ctk.CTk):
         self.title("metamate")
         self.icon = tk.PhotoImage(file = "icons8-m-96.png")
         self.iconphoto(False, self.icon)
-        self.geometry(f"{self.X}x{self.Y}")
-        self.minsize(self.X, self.Y)
-        self.maxsize(self.X, self.Y)
+        self.geometry(f"{self.x}x{self.y}")
+        self.minsize(self.x, self.y)
+        self.maxsize(self.y, self.y)
 
         # create 10x2 grid system
         self.grid_rowconfigure([r for r in range(10)], weight=1)
@@ -90,13 +90,13 @@ class App(ctk.CTk):
 
         # entry path
         self.path = ctk.CTkEntry(
-            self, width=600, height=40, corner_radius=20, textvariable=self.variablePth)
+            self, width=600, height=40, corner_radius=20, border_width=0, textvariable=self.variablePth)
         self.path.insert(0, rootDir)
         self.path.grid(row=3, column=0, columnspan=2, padx=50)
 
         # button browse
         self.browse = ctk.CTkButton(
-            self, text="Browse", width= 600, height=40, corner_radius=20, command=self.chooseDirectory)
+            self, text="Browse", width= 600, height=40, corner_radius=20, border_width=0, command=self.chooseDirectory)
         self.browse.grid(row=4, column=0, columnspan=2, padx=50)
 
         # option-menu tag
@@ -113,7 +113,7 @@ class App(ctk.CTk):
 
         # button confirm
         self.confirm = ctk.CTkButton(
-            self, text="Go", width=140, height=40, corner_radius=20, command=self.renameFilesInDirectory)
+            self, text="Go", width=140, height=40, corner_radius=20, border_width=0, command=self.renameFilesInDirectory)
         self.confirm.grid(row=7, columnspan=2)
 
         # label message
@@ -143,17 +143,22 @@ class App(ctk.CTk):
         # check that the directory exists
         if not os.path.isdir(pth):
             logger.warning(f"Non-existent directory: '{pth}'")
-            self.setMessage("Non-existent directory")   # TODO: warning-icon
+            self.setMessage("Non-existent directory")
         # check that the directory is not the root directory
         elif pth == rootDir:
             logger.warning(f"Files in root directory cannot be renamed: '{pth}'")
-            self.setMessage("Choose valid directory")   # TODO: warning-icon
-        # rename
+            self.setMessage("Choose valid directory")
+        # check that the directory is not hidden
+        elif os.path.basename(pth).startswith("."): # TODO: possibly also check "H" attribute specifically for Windows as seen in notHidden()
+            logger.warning(f"Files in hidden directory cannot be renamed: '{pth}'")
+            self.setMessage("Hidden directory")
+        # permitted
         else:
+            logger.info(f"Directory: '{pth}'")
             self.renameFiles(files=glob(os.path.join(pth, "*")), tag=self.optionsTag[self.variableTag.get()], sep=self.optionsSep[self.variableSep.get()])
         logger.info("Finish")
 
-    # return whether the file is not hidden
+    # return whether the file is not hidden on Windows
     def notHidden(self, file):
         return not bool(os.stat(file).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
@@ -172,8 +177,8 @@ class App(ctk.CTk):
         files = self.cleanFiles(files)
         # abort if there are no files to rename
         if not files:
-            logger.warning("No files to rename")    # TODO: log directory
-            self.setMessage("Directory is empty")   # TODO: warning-icon
+            logger.warning("No files to rename")
+            self.setMessage("Directory is empty")
             return
 
         # for analyzing
@@ -217,15 +222,15 @@ class App(ctk.CTk):
                     complete = False
                     logger.error(f"'{old}' could not be renamed to '{new}'")
 
-        # conclusion    # TODO: feedback-icons
+        # conclusion
         if some and complete:
             logger.info("Success: all files have been renamed")
-            self.setMessage("Succesful")
+            self.setMessage("Successful")
         elif some and already and not failure:
             logger.warning("Success: some files were already named that way")
             self.setMessage("Successful (some files were already named correctly)")
         elif some and failure and not already:
-            logger.error("Succes: some files could not have been renamed")
+            logger.error("Success: some files could not have been renamed")
             self.setMessage("Successful (but something went wrong)")
         elif some and failure and already:
             logger.error("Success: something went wrong and some files were already named that way")
@@ -255,4 +260,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # log exit
