@@ -129,9 +129,10 @@ class App(ctk.CTk):
     def clearMessage(self):
         self.setMessage("")
 
-    # open explorer and set path entry
+    # open explorer and set path entry dynamically
     def chooseDirectory(self):
-        pth = filedialog.askdirectory(initialdir=home)
+        initDir = self.variablePth.get().strip() if self.variablePth.get().strip() != rootDir else home
+        pth = filedialog.askdirectory(initialdir=initDir)
         if pth:
             self.path.delete(0, ctk.END)
             self.path.insert(0, pth)
