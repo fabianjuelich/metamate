@@ -149,7 +149,7 @@ class App(ctk.CTk):
             logger.warning(f"Files in root directory cannot be renamed: '{pth}'")
             self.setMessage("Choose valid directory")
         # check that the directory is not hidden
-        elif os.path.basename(pth).startswith("."): # TODO: possibly also check "H" attribute specifically for Windows as seen in notHidden()
+        elif not self.notHidden(pth):
             logger.warning(f"Files in hidden directory cannot be renamed: '{pth}'")
             self.setMessage("Hidden directory")
         # permitted
@@ -158,17 +158,21 @@ class App(ctk.CTk):
             self.renameFiles(files=glob(os.path.join(pth, "*")), tag=self.optionsTag[self.variableTag.get()], sep=self.optionsSep[self.variableSep.get()])
         logger.info("Finish")
 
-    # return whether the file is not hidden on Windows
-    def notHidden(self, file):
-        return not bool(os.stat(file).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+    # return whether the path is not hidden on multiplatform
+    def notHidden(self, path: str):
+        hidden = 0
+        hidden += os.path.basename(path).startswith(".")
+        if platform.system() == "Windows":
+            hidden += bool(os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
+        print("Hidden:", hidden)
+        return not hidden
 
     # discard critical files
     def cleanFiles(self, files):
         # check that file exists and discard subdirectories
         files = filter(os.path.isfile, files)
-        # discard hidden files for safety purpose on Windows (glob already ignores file names that start with a dot on Unix)
-        if platform.system() == "Windows":
-            files = filter(self.notHidden, files)
+        # discard hidden files for safety purpose (glob already ignores file names that start with a dot)
+        files = filter(self.notHidden, files)
         return list(files)
 
     # rename files based on their meta data, handle exceptions and write to logfile
