@@ -1,11 +1,3 @@
-"""
-Dependencies:
-Python 3.9.2
-Python3-tk
-CustomTkinter 4.6.3 (pip3)
-icons8-m-96.png
-"""
-
 import sys
 import os
 import platform
@@ -48,7 +40,7 @@ class Sep(Enum):
 # configure and create logger
 logFormat = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(
-    filename=("metamate.log"),
+    filename=(os.path.join(home, ".metamate.log")),
     level=logging.INFO,
     format=logFormat)
 logger = logging.getLogger()
